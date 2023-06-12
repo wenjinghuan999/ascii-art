@@ -2,6 +2,7 @@
 #include FT_FREETYPE_H
 
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <vector>
 #include <utility>
@@ -67,13 +68,14 @@ public:
             }
 
             // print bitmap
+            // note: we set glyph origin to the bottom-left corner of a pixel_size x pixel_size area
             FT_Bitmap& bitmap = slot->bitmap;
-            int rows = std::max(int(bitmap.rows), pixel_size);
-            int cols = std::max(int(bitmap.width), pixel_size);
+            int top = pixel_size - slot->bitmap_top;
+            int left = slot->bitmap_left;
+            int rows = std::max(top + int(bitmap.rows), pixel_size);
+            int cols = std::max(left + int(bitmap.width), pixel_size);
 
             std::vector<std::string> lines(rows, std::string(cols, ' '));
-            int top = (rows - int(bitmap.rows)) / 2;
-            int left = (cols - int(bitmap.width)) / 2;
 
             for (int y = 0; y < int(bitmap.rows); ++y) {
                 for (int x = 0; x < int(bitmap.width); ++x) {
@@ -85,9 +87,17 @@ public:
         }
 
         // Print bitmaps
-        for (int y = 0; y < pixel_size; ++y) {
+        int rows = std::accumulate(bitmaps.begin(), bitmaps.end(), 0, [](int max_rows, const std::vector<std::string> &bitmap) {
+            return std::max(max_rows, int(bitmap.size()));
+        });
+        for (int y = 0; y < rows; ++y) {
             for (int i = 0; i < int(bitmaps.size()); ++i) {
-                std::cout << bitmaps[i][y] << " ";
+                if (y < bitmaps[i].size()) {
+                    std::cout << bitmaps[i][y] << " ";
+                }
+                else {
+                    std::cout << std::string(bitmaps[i][0].size(), ' ') << " ";
+                }
             }
             std::cout << std::endl;
         }
