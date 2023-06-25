@@ -52,8 +52,14 @@ int main(int argc, const char* argv[]) {
         u32text = std::u32string(text.begin(), text.end());
     }
 
+    aa::GlyphMapper<char> mapper;
+    mapper.add_mapping({{ 0 }}, ' ');
+    mapper.add_mapping({{ 63 }}, '+');
+    mapper.add_mapping({{ 127 }}, '*');
+    mapper.add_mapping({{ 255 }}, '#');
+
     aa::Font font;
     font.load_font(font_name);
-    font.print_glyphs(u32text.c_str(), 32);
+    font.print_glyphs(u32text.c_str(), 32, mapper);
     return 0;
 }

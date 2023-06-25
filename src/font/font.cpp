@@ -3,14 +3,36 @@
 
 #include "font.h"
 
+#include <algorithm>
+#include <cassert>
 #include <iostream>
 #include <numeric>
 #include <string>
-#include <vector>
 #include <utility>
-
+#include <vector>
 
 namespace aa {
+
+Bitmap::Bitmap(int width, int height) : width_(width), height_(height) {
+    assert(width_ > 0 && height_ > 0);
+    pitch_ = (width_ + 7) / 8 * 8;
+    data_.resize(pitch_ * height_);
+}
+
+Bitmap::Bitmap(std::initializer_list<std::vector<uint8_t>> init) {
+    assert(init.size() > 0);
+    width_ = static_cast<int>(init.begin()->size());
+    height_ = static_cast<int>(init.size());
+    pitch_ = (width_ + 7) / 8 * 8;
+    data_.resize(pitch_ * height_);
+
+    int y = 0;
+    for (const std::vector<uint8_t>& row : init) {
+        assert(static_cast<int>(row.size()) == width_);
+        std::copy(row.begin(), row.end(), data_.begin() + y * pitch_);
+        ++y;
+    }
+}
 
 class Font::Impl {
     friend class Font;
@@ -61,7 +83,7 @@ void Font::load_font(const std::string& filename) {
     }
 }
 
-void Font::print_glyphs(const char32_t* str, int pixel_size) const {
+void Font::print_glyphs(const char32_t* str, int pixel_size, const GlyphMapper<char>& mapper) const {
     if (!impl_->face) {
         std::cerr << "Font not loaded" << std::endl;
         return;
@@ -109,8 +131,9 @@ void Font::print_glyphs(const char32_t* str, int pixel_size) const {
 
         for (int y = 0; y < int(bitmap.rows); ++y) {
             for (int x = 0; x < int(bitmap.width); ++x) {
-                unsigned char pixel = bitmap.buffer[y * bitmap.pitch + x];
-                lines[y + top][x + left] = pixel > 0 ? '*' : ' ';
+                uint8_t pixel = bitmap.buffer[y * bitmap.pitch + x];
+                Bitmap bitmap{ { pixel } };
+                lines[y + top][x + left] = mapper(bitmap);
             }
         }
         bitmaps.emplace_back(std::move(lines));
@@ -132,5 +155,15 @@ void Font::print_glyphs(const char32_t* str, int pixel_size) const {
         std::cout << std::endl;
     }
 }
+
+void Font::print_glyphs(const char32_t* str, int pixel_size) const {
+    GlyphMapper<char> mapper;
+    mapper.set_input_tuning(Tuning(Tuning::type::binary, 0u));
+    mapper.add_mapping({{ 0 }}, ' ');
+    mapper.add_mapping({{ 255 }}, '*');
+
+    print_glyphs(str, pixel_size, mapper);
+}
+
 
 } // namespace aa
