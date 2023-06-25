@@ -30,5 +30,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(freetype)
 
+# argparse
+FetchContent_Declare(
+  argparse
+  GIT_REPOSITORY https://github.com/p-ranav/argparse
+  GIT_TAG        v2.9
+)
+FetchContent_MakeAvailable(argparse)
+
 add_subdirectory(src)
 add_subdirectory(resources)
+add_subdirectory(third_party)
